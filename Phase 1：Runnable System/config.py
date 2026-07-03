@@ -18,3 +18,9 @@ LLM_CONFIG = {
     "temperature": 0.7,
     "max_tokens": 2000,
 }
+
+# Session 存档路径
+SESSIONS_DIR = BASE_DIR / "sessions"
+
+# 短期记忆最大轮数
+MAX_SHORT_TERM_TURNS = 10
