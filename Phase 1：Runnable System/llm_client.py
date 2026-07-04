@@ -17,9 +17,9 @@ def chat_stream(messages: list[dict]):
     )
     full_response = ""
     for chunk in stream:
-        if chunk.choices[0].delta.content:
+        if chunk.choices and chunk.choices[0].delta.content:
             text = chunk.choices[0].delta.content
             print(text, end="", flush=True)
             full_response += text
-    print()  # 最后换行
-    return full_response                                 # 换行处理
+    print()
+    return full_response
