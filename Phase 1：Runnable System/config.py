@@ -24,3 +24,13 @@ SESSIONS_DIR = BASE_DIR / "sessions"
 
 # 短期记忆最大轮数
 MAX_SHORT_TERM_TURNS = 10
+
+# 启动配置校验
+def validate_config():
+    errors = []
+    if not LLM_CONFIG["api_key"]:
+        errors.append("OPENAI_API_KEY 未设置，请在 .env 中配置")
+    if not LLM_CONFIG["base_url"]:
+        errors.append("OPENAI_BASE_URL 未设置")
+    if errors:
+        raise ValueError("\n".join(["❌ 配置错误："] + errors))
