@@ -1,39 +1,42 @@
+from config import validate_config
 from prompt_builder import build_system_prompt
 from llm_client import chat_stream
 from session_manager import create_session, save_message
 from memory import ShortTermMemory
 
 def main():
-    # 1. 构建 system prompt
+    validate_config()                                                   # config.py，验证配置文件
+
     print("[CompassY] 正在加载规则...")
-    system_prompt = build_system_prompt()
+    system_prompt = build_system_prompt()                               # prompt_builder.py，构建系统提示
 
-    # 2. 初始化记忆
-    memory = ShortTermMemory(system_prompt)
+    memory = ShortTermMemory(system_prompt)                             # memory.py，初始化记忆
 
-    # 3. 创建 session 文件
-    session_file = create_session()
+    session_file = create_session()                                     # session_manager.py，创建会话文件
     print(f"[CompassY] Session 已创建：{session_file.name}")
 
-    # 4. 对话循环
+    BANNER = r"""                                                       
+      ┌──────────────────────────────────────┐
+      │          CompassY  v1.0              │
+      │   Personal AI Executive Assistant    │
+      │          Phase 1 · CLI Agent         │
+      └──────────────────────────────────────┘
+    """
     print("\n" + "=" * 50)
-    print("CompassY MVP Agent 已启动")
-    print("输入 /exit 退出，/save 手动存档")
+    print(BANNER)
+    print("输入 /exit 退出  |  /save 手动存档  |  /help 查看帮助")
     print("=" * 50 + "\n")
 
     while True:
         try:
-            user_input = input("You: ").strip()
+            user_input = input("You: ").strip()                                 # 获取用户输入，去掉首尾空格
         except (EOFError, KeyboardInterrupt):
             break
-
-        if not user_input:
+        if not user_input:                                                      # 如果用户输入为空，跳过
             continue
-
-        if user_input.lower() == "/exit":
+        if user_input.lower() == "/exit":                                       # 如果用户输入是 /exit，退出循环
             break
-
-        if user_input.lower() == "/save":
+        if user_input.lower() == "/save":                                       # 如果用户输入是 /save，手动存档
             print(f"[CompassY] 当前 session 已自动保存至 {session_file.name}")
             continue
 
@@ -49,6 +52,8 @@ def main():
         except Exception as e:
             response = f"[错误] LLM 调用失败：{e}"
             print(f"\n{response}")
+            save_message(session_file, "system", response)
+            continue
 
         # 记录 AI 回复
         memory.add_assistant_message(response)
@@ -58,3 +63,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

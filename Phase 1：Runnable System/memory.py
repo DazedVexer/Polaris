@@ -1,5 +1,6 @@
 from config import MAX_SHORT_TERM_TURNS
 
+
 class ShortTermMemory:
     def __init__(self, system_prompt: str):
         self.system_prompt = system_prompt
@@ -12,11 +13,10 @@ class ShortTermMemory:
         self.history.append({"role": "assistant", "content": content})
 
     def get_messages(self) -> list[dict]:
-        # 返回完整 messages 列表，包含 system prompt + 最近 N 轮
-        recent = self.history[-(MAX_SHORT_TERM_TURNS * 2):]
+        recent = self.history[-(MAX_SHORT_TERM_TURNS * 2):]  # 活动窗口，最近 MAX_SHORT_TERM_TURNS 轮对话
         return [{"role": "system", "content": self.system_prompt}] + recent
 
+    # 预设方法，后续Phase计划
     def get_summary(self) -> str:
-        # 返回当前对话的简要摘要（用于 session 元数据）
         user_msgs = [m["content"] for m in self.history if m["role"] == "user"]
         return " > ".join(user_msgs[-3:])

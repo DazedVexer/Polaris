@@ -30,7 +30,7 @@ def save_message(session_file: Path, role: str, content: str):
     })
     session_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
-# 预设方法，用于后续Phase计划
+# 预设方法，后续Phase计划
 def load_session(session_file: Path) -> list[dict]:
     try:
         data = json.loads(session_file.read_text(encoding="utf-8"))
