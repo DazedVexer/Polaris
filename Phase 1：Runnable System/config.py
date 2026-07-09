@@ -2,13 +2,11 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
-load_dotenv()
-
 BASE_DIR = Path(__file__).parent
-
 RULES_DIR = BASE_DIR / "rules"
 SESSIONS_DIR = BASE_DIR / "sessions"
-# LLM 配置
+
+load_dotenv(BASE_DIR / ".env", override=True)
 LLM_CONFIG = {
     "api_key": os.getenv("OPENAI_API_KEY"),
     "base_url": os.getenv("OPENAI_BASE_URL"),
@@ -17,10 +15,8 @@ LLM_CONFIG = {
     "max_tokens": 2000,
 }
 
-# 短期记忆最大轮数
-MAX_SHORT_TERM_TURNS = 10
+STM_WindowSize = 10
 
-# 启动配置校验
 def validate_config():
     errors = []
     if not LLM_CONFIG["api_key"]:
@@ -30,4 +26,4 @@ def validate_config():
     if not LLM_CONFIG["model"]:
         errors.append("OPENAI_MODEL 未设置")
     if errors:
-        raise ValueError("\n".join(["❌ 配置错误："] + errors))
+        raise ValueError("\n".join(["\n❌ 配置错误："] + errors))

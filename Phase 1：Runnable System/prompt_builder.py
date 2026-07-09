@@ -1,19 +1,20 @@
-from pathlib import Path
 from config import RULES_DIR
 
-def build_system_prompt() -> str:
-    # 如果规则目录不存在，返回默认提示
+def sys_prompt_builder(mode_hint: dict = None) -> str:
+    """
+    构建 system prompt。
+    mode_hint 可选，用于后续 Phase 动态注入情绪模式指令。
+    """
     if not RULES_DIR.exists():
-        return "You are CompassY, a Personal AI Executive Assistant."
+        return "You are Polaris, a Personal AI Executive Assistant."
 
-    prompt_parts = []
+    prompt_list = []
     rule_files = sorted(RULES_DIR.glob("*.md"))
     for f in rule_files:
-        content = f.read_text(encoding="utf-8")
-        prompt_parts.append(content)
+        prompt_list.append(f.read_text(encoding="utf-8"))
 
-    full_prompt = ("\n\n---\n\n".join(prompt_parts) +
-                   "\n\n---\n\nYou are now interacting with users as CompassY. "
+    base_prompt = ("\n---\n".join(prompt_list) +
+                   "\n---\nYou are now interacting with users as Polaris. "
                    "Please strictly adhere to all the rules above.")
 
-    return full_prompt
+    return base_prompt

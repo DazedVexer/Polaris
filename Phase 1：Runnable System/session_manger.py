@@ -8,7 +8,6 @@ def create_session() -> Path:
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     session_file = SESSIONS_DIR / f"{timestamp}.json"
 
-    # 初始化 session 数据结构
     session_data = {
         "session_id": timestamp,
         "created_at": datetime.now().isoformat(),
@@ -30,10 +29,8 @@ def save_message(session_file: Path, role: str, content: str):
     })
     session_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
-# 预设方法，后续Phase计划
 def load_session(session_file: Path) -> list[dict]:
     try:
-        data = json.loads(session_file.read_text(encoding="utf-8"))
-        return data.get("messages", [])
+        return json.loads(session_file.read_text(encoding="utf-8")).get("messages", [])
     except (json.JSONDecodeError, FileNotFoundError):
         return []
