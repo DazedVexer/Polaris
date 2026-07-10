@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  polaris:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: polaris
+    ports:
+      - "8000:8000"
+    volumes:
+      # 持久化数据
+      - ./kb:/app/kb                    # 知识库文档
+      - ./sessions:/app/sessions        # 对话存档
+      - ./chroma_db:/app/chroma_db      # 向量数据库
+      - ./polaris_memory.db:/app/polaris_memory.db  # SQLite 记忆库
+      # 规则文件
+      - ./rules:/app/rules
+    environment:
+      # LLM 配置（从宿主机传入或在此硬编码）
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      # Embedding
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-openai}
+      # 工具 API Keys
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      # 服务器配置
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8000
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000}
+      - API_TOKEN=${API_TOKEN:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
