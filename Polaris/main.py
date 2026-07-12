@@ -7,9 +7,11 @@ from memory.memory_manager import MemoryManager
 from memory.long_term_memory import init_db, get_memory_count, get_mood_count, rebuild_embedding_column, sync_all_to_vector_db
 from retrieval.retrieval_pipeline import build_retrieval_context
 from retrieval.knowledge_base import build_knowledge_base
-from core.agent_loop import AgentLoop                       # ◀ Phase 4
-from tools import register_all_tools                       # ◀ Phase 5
-from perception.perception import analyze as perception_analyze  # ◀ BangBand 感知层
+from core.agent_loop import AgentLoop
+from tools import register_all_tools
+from perception.perception import analyze as perception_analyze
+from core.monitor import DataMonitor
+from core.decision_engine import decide as decision_decide
 
 def main():
     validate_config()                                           # 验证 .env 配置
@@ -32,6 +34,8 @@ def main():
 
     # Phase 5：初始化工具注册中心
     register_all_tools()                                        # 注册所有工具 <tools.py>
+
+    monitor = DataMonitor()
 
     print("[Polaris] 正在加载规则...")
     system_prompt = sys_prompt_builder()                        # 加载规则 Prompt
@@ -161,26 +165,34 @@ def main():
             continue
 
         # 记录用户消息
-        memory.add_user_message(user_input)                     # 记录用户消息 <memory.py>
-        save_message(session_file, "user", user_input)          # 保存用户消息到文件 <session.py>
+        memory.add_user_message(user_input)
+        save_message(session_file, "user", user_input)
 
-        # BangBand 感知层：静默分析情绪和意图，动态重建 system prompt
-        perception_result = perception_analyze(user_input)      # 感知分析 <perception.py>
-        mem_mgr.extract_emotion(user_input)                     # 静默记录情绪到 mood_log
-        memory.system_prompt = sys_prompt_builder(              # 动态模式切换
+        perception_result = perception_analyze(user_input)
+        mem_mgr.extract_emotion(user_input)
+        memory.system_prompt = sys_prompt_builder(
             mode_hint=perception_result
         )
 
-        # Phase 3：同时查记忆 + 知识库
-        retrieval_context = build_retrieval_context(user_input)  # 检索上下文 <knowledge_base.py>
+        anomalies = monitor.check()
+
+        decision = decision_decide(
+            user_message=user_input,
+            mood=perception_result.get("mood", "neutral"),
+            intent=perception_result.get("intent", "chatting"),
+            intensity=perception_result.get("intensity", "low"),
+            anomalies=anomalies,
+            profile=monitor.get_mood_summary()
+        )
+
+        retrieval_context = build_retrieval_context(user_input)
         temp_extra = []
-        if retrieval_context:                                    # 如果有检索到的上下文
-            temp_extra.append({                                  # 添加检索到的上下文到临时消息列表
-                "role": "system",                                # 系统消息
-                "content": retrieval_context,                    # 系统消息内容
+        if retrieval_context:
+            temp_extra.append({
+                "role": "system",
+                "content": retrieval_context,
             })
 
-        # 调用 LLM
         try:
             messages = memory.get_messages()
             full_messages = [messages[0]] + temp_extra + messages[1:]
@@ -196,11 +208,28 @@ def main():
             mem_mgr.maybe_summarize()
             continue
 
-        # 记录 AI 回复
+        if decision["action"] in ("suggest_agent", "auto_agent", "alert"):
+            if decision["action"] == "suggest_agent":
+                task = decision.get("agent_task", "")
+                if task:
+                    response += f"\n\n[提议] 是否需要我进行深入分析？输入 /agent 加上你想做的任务即可。"
+                    memory.history.append({"role": "system", "content": f"[Agent 提议] {task}"})
+            elif decision["action"] == "auto_agent":
+                agent = AgentLoop()
+                agent_result = agent.run(
+                    user_instruction=decision.get("agent_task", user_input),
+                    context=retrieval_context,
+                    on_step=None,
+                    silent=True
+                )
+                summary = agent_result.get("summary", "")
+                response += f"\n\n📊 [自主分析]\n{summary}"
+            elif decision["action"] == "alert":
+                response += f"\n\n⚠ [自动提醒] {decision.get('agent_task', '')}"
+
         memory.add_assistant_message(response)
         save_message(session_file, "assistant", response)
 
-        # 对话后触发记忆提取和总结
         mem_mgr.maybe_extract()
         mem_mgr.maybe_summarize()
 

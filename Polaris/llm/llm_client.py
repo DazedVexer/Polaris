@@ -47,3 +47,27 @@ def chat_stream(messages: list[dict], max_retries: int = 3) -> str:
             return f"[错误] {e}"
 
     return f"[错误] 重试 {max_retries} 次后仍然无法连接：{last_error}"
+
+def chat_completion(messages: list[dict], temperature: float = None, max_retries: int = 2) -> str:
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            response = _get_client().chat.completions.create(
+                model=LLM_CONFIG["model"],
+                messages=messages,
+                temperature=temperature if temperature is not None else LLM_CONFIG["temperature"],
+                max_tokens=LLM_CONFIG["max_tokens"],
+                stream=False,
+            )
+            return response.choices[0].message.content or ""
+
+        except (APIConnectionError, APITimeoutError) as e:
+            last_error = e
+            wait = 2 ** attempt
+            time.sleep(wait)
+        except RateLimitError:
+            return "{}"
+        except Exception:
+            return "{}"
+
+    return "{}"

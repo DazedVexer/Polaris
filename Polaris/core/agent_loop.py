@@ -28,6 +28,7 @@ class AgentLoop:
         user_instruction: str,
         context: str = "",
         on_step: callable = None,
+        silent: bool = False,
     ) -> dict:
         """
         执行 Agent 循环。
@@ -46,13 +47,14 @@ class AgentLoop:
                 "total_llm_calls": 5
             }
         """
-        # ===== Phase 1: Plan =====
-        print("\n[Agent] 🧠 正在规划任务...")
+        if not silent:
+            print("\n[Agent] 🧠 正在规划任务...")
         plan_data = plan(user_instruction, context)
         self.planner_steps = plan_data.get("steps", [])
 
-        print(format_plan(plan_data))
-        print(f"\n[Agent] 共 {len(self.planner_steps)} 步，开始执行...\n")
+        if not silent:
+            print(format_plan(plan_data))
+            print(f"\n[Agent] 共 {len(self.planner_steps)} 步，开始执行...\n")
 
         # ===== Phase 2: Execute =====
         step_results = self.executor.execute_plan(
@@ -78,9 +80,9 @@ class AgentLoop:
 
             if action == "retry_step":
                 failed_steps = reflection_result.get("failed_steps", [])
-                print(f"\n[Agent] 🔄 重试失败步骤：{failed_steps}")
+                if not silent:
+                    print(f"\n[Agent] 重试失败步骤：{failed_steps}")
 
-                # 取出要重试的步骤，重新执行
                 for step_num in failed_steps:
                     step = self._find_step(plan_data, step_num)
                     if step:
@@ -104,16 +106,18 @@ class AgentLoop:
             elif action == "replan":
                 self.plan_retry_count += 1
                 if self.plan_retry_count > AGENT_MAX_RETRIES:
-                    print(f"\n[Agent] ⚠ 已重新规划 {AGENT_MAX_RETRIES} 次，放弃。")
+                    if not silent:
+                        print(f"\n[Agent] 已重新规划 {AGENT_MAX_RETRIES} 次，放弃。")
                     break
 
-                print(f"\n[Agent] 🔄 重新规划任务（第 {self.plan_retry_count} 次）...")
-                # 将失败结果作为上下文传入
+                if not silent:
+                    print(f"\n[Agent] 重新规划任务（第 {self.plan_retry_count} 次）...")
                 failure_context = self._format_failure_context(step_results)
                 plan_data = plan(user_instruction, context + "\n" + failure_context)
                 self.planner_steps = plan_data.get("steps", [])
 
-                print(format_plan(plan_data))
+                if not silent:
+                    print(format_plan(plan_data))
 
                 # 重新执行
                 self.executor = Executor()

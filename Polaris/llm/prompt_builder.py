@@ -1,11 +1,6 @@
 from config import RULES_DIR
 
-def sys_prompt_builder(mode_hint: dict = None) -> str:
-    """
-    构建 system prompt。
-    mode_hint 可选，用于 BangBand 动态注入情绪模式指令。
-    格式：{"mood": "anxious", "intent": "consulting"}
-    """
+def sys_prompt_builder(mode_hint: dict = None, anomalies: list[dict] = None) -> str:
     if not RULES_DIR.exists():
         return "You are Polaris, a Personal AI Executive Assistant."
 
@@ -17,42 +12,46 @@ def sys_prompt_builder(mode_hint: dict = None) -> str:
     base_prompt = ("\n---\n".join(prompt_list) +
                    "\n---\nYou are now interacting with users as Polaris. Please strictly adhere to all the rules above")
 
-    # BangBand：动态注入情绪模式指令
     if mode_hint:
         mood = mode_hint.get("mood", "neutral")
         intent = mode_hint.get("intent", "chatting")
-        dynamic_section = _build_emotion_guide(mood, intent)
+        dynamic_section = _build_emotion_guide(mood, intent, anomalies)
         if dynamic_section:
             base_prompt = base_prompt + "\n---\n" + dynamic_section
 
     return base_prompt
 
 
-def _build_emotion_guide(mood: str, intent: str) -> str:
-    """根据 mood 和 intent 拼出当前轮次的行为指令（精简版）。"""
-    lines = ["# 当前轮次行为指令（BangBand 动态注入）", ""]
+def _build_emotion_guide(mood: str, intent: str, anomalies: list[dict] = None) -> str:
+    lines = ["# Current Round Behavior Guide (Dynamic Injection)", ""]
 
-    # 情绪模式
     if mood in ("anxious", "sad", "frustrated"):
-        lines.append("- 用户当前情绪低落，优先共情和倾听，不要急于给解决方案")
-        lines.append('- 避免空洞安慰（"别担心""会好起来的"）')
+        lines.append("- User mood is low. Prioritize empathy and listening. Do not rush to solutions.")
     elif mood == "angry":
-        lines.append("- 用户当前有愤怒情绪，先确认感受，不要急着分析或辩解")
+        lines.append("- User is angry. Validate feelings first, avoid analysis or defense.")
     elif mood in ("happy", "excited"):
-        lines.append("- 用户心情不错，真诚回应这份能量，可以适当延伸思路")
+        lines.append("- User is in good spirits. Match their energy genuinely.")
     elif mood == "tired":
-        lines.append("- 用户表达了疲惫，先确认感受，判断是需要休息还是调整节奏")
+        lines.append("- User is tired. Acknowledge it and determine if rest or adjustment is needed.")
 
-    # 意图模式
     if intent == "venting":
-        lines.append("- 用户可能在发泄，核心是倾听和确认感受，不是解决问题")
-        lines.append("- 等用户情绪缓和后，再判断是否需要切换模式")
+        lines.append("- User is venting. Core priority: listen and validate. Do not solve problems.")
+        lines.append("- After user calms down, consider if switching to agent mode is appropriate.")
     elif intent == "consulting":
-        lines.append("- 用户正在咨询，按核心原则执行：数据驱动、方案可执行")
-        lines.append("- 先确认理解是否正确，再展开分析")
+        lines.append("- User is consulting. Be data-driven and actionable.")
+        lines.append("- If the question involves data analysis, proactively suggest using Agent mode.")
+        lines.append('- Phrase suggestion naturally, e.g. "Shall I run a full analysis on this?"')
     elif intent == "planning":
-        lines.append("- 帮助用户结构化思考：目标 → 现状 → 差距 → 步骤")
+        lines.append("- Help user structure thoughts: Goal → Current → Gap → Steps")
+        lines.append("- If user mentions specific data points, suggest Agent mode for deeper analysis.")
     elif intent == "sharing":
-        lines.append("- 用户在分享，表达兴趣，延伸对话方向")
+        lines.append("- User is sharing. Show interest and extend the conversation.")
+
+    if anomalies:
+        lines.append("")
+        lines.append("- User data anomalies detected. Consider mentioning in response if relevant:")
+        for a in anomalies:
+            lines.append(f"  · {a.get('message', '')}")
+        lines.append("- If anomalies suggest a pattern, propose Agent mode for comprehensive review.")
 
     return "\n".join(lines)
