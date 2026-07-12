@@ -18,9 +18,9 @@
 
 ***
 
-## 为什么是 Polaris？
+## 项目概述
 
-市面上大多数"AI Agent"项目不过是 LangChain 或 AutoGPT 的薄薄一层封装。\*\*Polaris 不一样。\*\*每次 LLM 调用、每个 prompt、每次决策——都在源码里，看得见、改得动。
+Polaris 是一个从零构建的 AI Agent 系统，纯 Python + OpenAI SDK，不依赖任何 Agent 框架。整个项目经过六个阶段的渐进式开发（参见 `Development/`），每一步迭代都源于上一阶段的真实痛点——从让 LLM 跑起来，到能记住、能理解、会规划、能动工具、最后打包成 Web 应用。所有 prompt、调度逻辑、工具调用链路都在源码里，无黑盒。
 
 - **六层渐进式架构**——每一层都因为上一层暴露了真实痛点而诞生，不是框架告诉你"该加这一层"
 - **零框架依赖**——不依赖 LangChain、LlamaIndex、CrewAI。纯 Python + OpenAI SDK
@@ -222,3 +222,19 @@ cp .env.example .env
 | `POST`   | `/api/knowledge/rebuild` | 重建知识库            |
 | `GET`    | `/api/tools`             | 可用工具列表          |
 | `GET`    | `/health`                | 健康检查              |
+
+|      |      |      |
+| ---- | ---- | ---- |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
+|      |      |      |
